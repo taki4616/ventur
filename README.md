@@ -13,9 +13,7 @@ Ventur is an AI-powered outdoor adventure companion that tells you whether to **
 
 > Pick your activity → Enter a location → Get your verdict in seconds
 
-![Ventur Demo](./demo.gif)
-
----
+## 🎬 [Watch the Demo]🎬 https://www.loom.com/share/8eab7916a6364763a5b804ef8aa5cf8f
 
 ## Features
 
