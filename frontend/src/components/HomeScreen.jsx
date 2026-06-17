@@ -1,17 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import ActivityCard from "./ActivityCard";
+import LocationInput from "./LocationInput";
 
 function HomeScreen({ onSubmit }) {
   const [activity, setActivity] = useState("hike");
   const [location, setLocation] = useState("");
+  const [location2, setLocation2] = useState("");
   const [dayIndex, setDayIndex] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
-  const [location2, setLocation2] = useState("");
   const [recent, setRecent] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef(null);
-  const dropdownRef = useRef(null);
 
   const dayLabels = Array.from({ length: 7 }, (_, i) => {
     if (i === 0) return "Today";
@@ -25,48 +22,10 @@ function HomeScreen({ onSubmit }) {
     setRecent(saved);
   }, []);
 
-  useEffect(() => {
-    if (location.trim().length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=5`,
-          { headers: { "User-Agent": "ventur-app" } }
-        );
-        const data = await res.json();
-        const filtered = data.filter(
-          (r) => !["road", "house", "building", "postcode", "path", "footway"].includes(r.type)
-        );
-        setSuggestions(filtered);
-        setShowSuggestions(filtered.length > 0);
-      } catch {
-        setSuggestions([]);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [location]);
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
-        inputRef.current && !inputRef.current.contains(e.target)
-      ) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  function handleSelect(result) {
-    setLocation(result.display_name);
-    setSuggestions([]);
-    setShowSuggestions(false);
+  function handleSubmit() {
+    if (!location.trim()) return;
+    if (compareMode && !location2.trim()) return;
+    onSubmit(activity, location, dayIndex, compareMode ? location2 : null);
   }
 
   return (
@@ -121,55 +80,30 @@ function HomeScreen({ onSubmit }) {
         </div>
       )}
 
-      <div className="relative w-full max-w-xl mb-6">
-        <input
-          ref={inputRef}
-          type="text"
+      <div className="w-full max-w-xl mb-6">
+        <LocationInput
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && location.trim()) onSubmit(activity, location, dayIndex);
-            if (e.key === "Escape") setShowSuggestions(false);
-          }}
+          onChange={setLocation}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
           placeholder="Where are you headed?"
-          className="w-full px-4 py-3 rounded-lg bg-zinc-800 text-white border border-zinc-700 focus:outline-none"
+          recent={recent}
         />
-        {showSuggestions && (
-          <div
-            ref={dropdownRef}
-            className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden z-10"
-          >
-            {suggestions.map((s, i) => (
-              <button
-                key={i}
-                onMouseDown={() => handleSelect(s)}
-                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-700 transition truncate"
-              >
-                {s.display_name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {compareMode && (
         <div className="w-full max-w-xl mb-6">
-          <input
-            type="text"
+          <LocationInput
             value={location2}
-            onChange={(e) => setLocation2(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && location.trim() && location2.trim())
-                onSubmit(activity, location, dayIndex, location2);
-            }}
+            onChange={setLocation2}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
             placeholder="Compare with..."
-            className="w-full px-4 py-3 rounded-lg bg-zinc-800 text-white border border-zinc-700 focus:outline-none"
+            recent={recent}
           />
         </div>
       )}
 
       <button
-        onClick={() => onSubmit(activity, location, dayIndex, compareMode ? location2 : null)}
+        onClick={handleSubmit}
         disabled={!location.trim() || (compareMode && !location2.trim())}
         className={`w-full max-w-xl py-3 rounded-lg font-semibold transition ${
           location.trim() && (!compareMode || location2.trim())

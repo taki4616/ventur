@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import TripBuilder from "./TripBuilder";
 
-function VerdictCard({ d, isBetter }) {
+function VerdictCard({ d, isBetter, onPlanTrip }) {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -18,7 +19,7 @@ function VerdictCard({ d, isBetter }) {
   const peakPrecip = Math.max(...d.weather.hourly_precip_chance);
 
   return (
-    <div className={`${bgColor} border ${borderColor} rounded-2xl p-6 relative`}>
+    <div className={`${bgColor} border ${borderColor} rounded-2xl p-6 relative flex flex-col`}>
       {isBetter && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
           Better Pick
@@ -37,7 +38,7 @@ function VerdictCard({ d, isBetter }) {
       <div className="text-sm text-zinc-400 mb-2">Vibe {d.vibe_score}/10</div>
       <div className="italic text-zinc-300 text-sm mb-5">{d.one_liner}</div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 mb-5">
         <div className="bg-zinc-800 rounded-lg p-3">
           <div className="text-xs text-zinc-400">Temp</div>
           <div className="font-semibold">{Math.round(d.weather.current.temp)}°F</div>
@@ -57,12 +58,20 @@ function VerdictCard({ d, isBetter }) {
           <div className="font-semibold">{peakPrecip}%</div>
         </div>
       </div>
+
+      <button
+        onClick={onPlanTrip}
+        className="mt-auto w-full bg-white text-black py-2 rounded-lg text-sm font-semibold hover:bg-gray-200 transition"
+      >
+        Plan My Trip →
+      </button>
     </div>
   );
 }
 
 function CompareScreen({ data, onReset }) {
   const [d1, d2] = data;
+  const [activeTrip, setActiveTrip] = useState(null);
 
   const rank = { GO: 3, MAYBE: 2, SKIP: 1 };
   const s1 = rank[d1.verdict] * 10 + d1.vibe_score;
@@ -77,8 +86,8 @@ function CompareScreen({ data, onReset }) {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-10">
-        <VerdictCard d={d1} isBetter={winner === 0} />
-        <VerdictCard d={d2} isBetter={winner === 1} />
+        <VerdictCard d={d1} isBetter={winner === 0} onPlanTrip={() => setActiveTrip(0)} />
+        <VerdictCard d={d2} isBetter={winner === 1} onPlanTrip={() => setActiveTrip(1)} />
       </div>
 
       <button
@@ -87,6 +96,16 @@ function CompareScreen({ data, onReset }) {
       >
         Start Over
       </button>
+
+      {activeTrip !== null && (
+        <TripBuilder
+          tripPlan={data[activeTrip].trip_plan}
+          activity={data[activeTrip].activity}
+          suggestions={data[activeTrip].suggestions}
+          visible={activeTrip !== null}
+          onClose={() => setActiveTrip(null)}
+        />
+      )}
     </div>
   );
 }
