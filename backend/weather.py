@@ -1,7 +1,7 @@
 import requests
 
 
-def get_weather(location: str) -> dict:
+def get_weather(location: str, day_index: int = 0) -> dict:
     geo_res = requests.get(
         "https://nominatim.openstreetmap.org/search",
         params={"q": location, "format": "json", "limit": 1},
@@ -31,26 +31,47 @@ def get_weather(location: str) -> dict:
 
     forecast = requests.get(forecast_url, timeout=10).json()
 
-    current = forecast["current_weather"]
+    if day_index == 0:
+        cur = forecast["current_weather"]
+        current = {
+            "temp": cur["temperature"],
+            "windspeed": cur["windspeed"],
+            "weathercode": cur["weathercode"],
+        }
+    else:
+        noon = day_index * 24 + 12
+        current = {
+            "temp": forecast["hourly"]["temperature_2m"][noon],
+            "windspeed": forecast["hourly"]["windspeed_10m"][noon],
+            "weathercode": forecast["hourly"]["weathercode"][noon],
+        }
 
     today = {
-        "high": forecast["daily"]["temperature_2m_max"][0],
-        "low": forecast["daily"]["temperature_2m_min"][0],
-        "precip": forecast["daily"]["precipitation_sum"][0],
-        "max_wind": forecast["daily"]["windspeed_10m_max"][0],
+        "high": forecast["daily"]["temperature_2m_max"][day_index],
+        "low": forecast["daily"]["temperature_2m_min"][day_index],
+        "precip": forecast["daily"]["precipitation_sum"][day_index],
+        "max_wind": forecast["daily"]["windspeed_10m_max"][day_index],
     }
 
-    hourly_precip = forecast["hourly"]["precipitation_probability"][:24]
+    start = day_index * 24
+    hourly_precip = forecast["hourly"]["precipitation_probability"][start:start + 24]
+
+    forecast_days = [
+        {
+            "date": forecast["daily"]["time"][i],
+            "high": forecast["daily"]["temperature_2m_max"][i],
+            "low": forecast["daily"]["temperature_2m_min"][i],
+            "precip": forecast["daily"]["precipitation_sum"][i],
+        }
+        for i in range(7)
+    ]
 
     return {
         "location_name": name,
         "lat": lat,
         "lon": lon,
-        "current": {
-            "temp": current["temperature"],
-            "windspeed": current["windspeed"],
-            "weathercode": current["weathercode"],
-        },
+        "current": current,
         "today": today,
         "hourly_precip_chance": hourly_precip,
+        "forecast_days": forecast_days,
     }

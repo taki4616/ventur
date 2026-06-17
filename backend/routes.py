@@ -13,8 +13,11 @@ def verdict():
     if not activity or not location:
         return jsonify({"error": "activity and location required"}), 400
 
+    day_index = int(body.get("day_index", 0))
+
     try:
-        weather = get_weather(location)
+        weather = get_weather(location, day_index=day_index)
+        weather["location_name"] = location.split(",")[0].strip()
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
 
